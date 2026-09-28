@@ -155,3 +155,25 @@ def eliminar_estudiante(estudiante_id: int):
             "Puede cambiar su estado a INACTIVO.",
         ) from error
 
+@router.get("/{estudiante_id}/matriculas")
+def matriculas_del_estudiante(estudiante_id: int):
+    with conexion_lectura() as conexion:
+        obtener_o_404(conexion, "estudiantes", estudiante_id, "Estudiante")
+        filas = conexion.execute(
+            """
+            SELECT m.id AS matricula_id,
+                   a.codigo AS curso_codigo,
+                   a.nombre AS curso_nombre,
+                   s.codigo AS seccion,
+                   p.anio || '-' || p.numero AS periodo,
+                   m.estado
+            FROM matriculas m
+            JOIN secciones s ON s.id = m.seccion_id
+            JOIN asignaturas a ON a.id = s.asignatura_id
+            JOIN periodos p ON p.id = s.periodo_id
+            WHERE m.estudiante_id = ?
+            ORDER BY p.anio DESC, p.numero DESC
+            """,
+            (estudiante_id,),
+        ).fetchall()
+    return filas_a_lista(filas)
